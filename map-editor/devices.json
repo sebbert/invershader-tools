@@ -1,0 +1,10 @@
+[
+	{
+		"Name" : "App",
+		"Width" : 540,
+		"Height" : 500,
+		"PixelsPerPoint": 1,
+		"PhysicalPixelsPerInch" : 326,
+		"IsDefault" : true
+	}
+]
