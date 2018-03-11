@@ -87,10 +87,10 @@ function fill(fromCell) {
 		fastCells[idx(cell.x, cell.y)] = cell.state.value;
 	})
 
-	const getCell = (x, y) => fastCells[idx(x, y)];
-	const setCell = (x, y, value) => fastCells[idx(x, y)] = value;
+	const maxIter = 1000;
+	let numIter = 0;
 
-	const visit = (x, y) => {
+	function visit(x, y) {
 		if (x < 0 || x >= width.value ||
 			y < 0 || y >= height.value)
 			return;
@@ -103,12 +103,10 @@ function fill(fromCell) {
 		}
 	}
 
-	const maxIter = 1000;
-	let numIter = 0;
-
-	while (queue.length) {
+	function iter() {
 		let pos = dequeue();
 		let [x, y] = pos;
+		
 		visit(x-1, y  );
 		visit(x+1, y  );
 		visit(x  , y-1);
@@ -119,6 +117,9 @@ function fill(fromCell) {
 			throw new Error(`Flood fill: Exceeded maximum of ${maxIter} iterations`);
 		}
 	}
+
+	while (queue.length)
+		iter();
 
 	let newCells = new Array(w * h);
 

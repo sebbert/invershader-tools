@@ -99,15 +99,15 @@
 							<NumberPicker Value="{width}"
 								OnIncrement="{addCol}"
 								OnDecrement="{removeCol}"
-								Alignment="VerticalCenter"
-								Margin="4,0" />
+								Alignment="Top"
+								Margin="4,2,4,0" />
 						</ToolbarGroup>
 						<ToolbarGroup Label="HEIGHT">
 							<NumberPicker Value="{height}"
 								OnIncrement="{addRow}"
 								OnDecrement="{removeRow}"
-								Alignment="VerticalCenter"
-								Margin="4,0" />
+								Alignment="Top"
+								Margin="4,2,4,0" />
 						</ToolbarGroup>
 						<ToolbarGroup Label="TOOLS">
 							<ToolPicker
@@ -121,18 +121,18 @@
 						</ToolbarGroup>
 					</Grid>
 					<StackPanel Alignment="VerticalCenter" Orientation="Horizontal" Dock="Right">
-						<StackPanel Orientation="Horizontal" Padding="4" ItemSpacing="4">
+						<StackPanel Orientation="Horizontal" Padding="4" ItemSpacing="2">
 							<ToolbarButton Color="HighlightColor" Value="EXPORT" Clicked="{exportMap}" Margin="5,0" Alignment="VerticalCenter" />
-							<Rectangle Width="1" Color="#7774" Margin="0,-4" />
+							<!-- <Rectangle Width="1" Color="#0000" Margin="0,-4" /> -->
 							<Material.IconBase
 								Icon="Settings"
-								Color="HighlightColor"
+								Color="#fffc"
 								Size="14"
 								Padding="1,0,2,0"
 								Clicked="{openExportDialog}"
 								HitTestMode="LocalBounds"
 								/>
-							<Rectangle Layer="Background" Color="#0003" CornerRadius="2" StrokeWidth="1" StrokeColor="#7774" />
+							<Rectangle Layer="Background" Color="#0003" CornerRadius="2" />
 						</StackPanel>
 						<ToolbarButton Color="#F44336" Value="RESET" Clicked="{resetMap}" Alignment="VerticalCenter" />
 					</StackPanel>
@@ -152,26 +152,26 @@
 		<ToolPickerItem Icon="Texture" Tool="wall" Hotkey="D3" />
 		<Panel>
 			<LetBool ux:Name="isSelected" Value="false" />
-			<ToolPickerItem Icon="Water" Tool="fill" Hotkey="D4">
+			<ToolPickerItem ux:Name="fillItem" Icon="Water" Tool="fill" Hotkey="D4">
 				<WhileSelected>
 					<Clicked>
 						<HackCallback Handler="{toggleFillState}" />
 					</Clicked>
-					<OnKeyPress Key="D4">
-						<HackCallback Handler="{toggleFillState}" />
-					</OnKeyPress>
 
 					<Change isSelected.Value="True" Delay="0" DelayBack="0" />
 					<Move Vector="-7, -7, 0" Duration="0.2" DelayBack="0" Easing="CubicInOut" />
 					<Scale Factor="0.8" Duration="0.2" Easing="CubicInOut" DelayBack="0" />
 					<Rotate Degrees="360" Duration="0" EasingBack="CubicIn" DurationBack=".7" />
+
+					<OnKeyPress Key="D4">
+						<HackCallback Visual="fillItem" Handler="{toggleFillState}" />
+					</OnKeyPress>
 				</WhileSelected>
 			</ToolPickerItem>
-			<Each Items="{currentFillState}">
+			<Each Items="{currentFillState}" Identity="Object">
 				<ToolPickerItemBase
 					ux:Name="fillStateButton"
-					Icon="(data() == CellStateOff)  ? Texture
-					    : (data() == CellStateBlack ? Numeric1Box : Numeric2Box)"
+					Icon="Texture"
 					Clicked="{toggleFillState}">
 					<Scaling ux:Name="fillStateButtonScale" Factor="0.7" />
 					<WhileFalse Value="{isSelected}">
@@ -180,6 +180,14 @@
 						<Move Vector="7, 7, 0" Duration="0.2" Easing="CubicInOut" />
 						<Scale Factor="0.8" Duration="0.2" Easing="CubicInOut" />
 					</WhileFalse>
+
+					<LetString ux:Name="fillState" Value="{Snapshot data()}" />
+					<WhileString Value="{fillState}" Equals="#">
+						<Change Target="fillStateButton.Icon" Value="Numeric1Box" />
+					</WhileString>
+					<WhileString Value="{fillState}" Equals="x">
+						<Change Target="fillStateButton.Icon" Value="Numeric2Box" />
+					</WhileString>
 
 					<AddingAnimation>
 						<Move X="1" RelativeTo="Size" Duration="0.3" Easing="CubicInOut" />
@@ -193,7 +201,15 @@
 			</Each>
 			<!-- <Rectangle ux:Name="fillToolGroupBackground" Layer="Background" Color="#0004" CornerRadius="3" /> -->
 		</Panel>
-		<ToolPickerItem Icon="StarHalf" Tool="invert" Hotkey="D5" />
+		<Viewport Perspective="18" Width="25">
+			<ToolPickerItem Icon="StarHalf" Tool="invert" Hotkey="D5">
+				<WhileSelected>
+					<Rotate DegreesY="360" Duration="0.8" Easing="SinusoidalInOut" DurationBack="0" />
+					<Rotate DegreesX="45*3" Duration="0.4" Easing="SinusoidalIn" DurationBack="0" />
+					<Rotate DegreesX="-45*3" Delay="0.4" Duration="0.4" Easing="SinusoidalOut" DurationBack="0" />
+				</WhileSelected>
+			</ToolPickerItem>
+		</Viewport>
 		<ToolPickerItem Icon="Autorenew" Tool="cycle" Hotkey="D6">
 			<WhileSelected>
 				<Rotate Degrees="360" Duration="0.6" Easing="CubicInOut" DurationBack="0" />
