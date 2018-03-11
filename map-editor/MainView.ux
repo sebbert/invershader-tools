@@ -1,208 +1,291 @@
 <App>
+	<JavaScript File="App.js" />
+
 	<string ux:Global="CellStateOff" ux:Value=" " />
 	<string ux:Global="CellStateBlack" ux:Value="#" />
 	<string ux:Global="CellStateWhite" ux:Value="x" />
 
-	<JavaScript>
-		const Observable = require("FuseJS/Observable");
-
-		const width = Observable(18);
-		const height = Observable(10);
-
-		const CELL_STATE_OFF = " ";
-		const CELL_STATE_BLACK = "#";
-		const CELL_STATE_WHITE = "x";
-
-		function nextState(state) {
-			switch(state) {
-				case CELL_STATE_OFF:   return CELL_STATE_BLACK;
-				case CELL_STATE_BLACK: return CELL_STATE_WHITE;
-				default:               return CELL_STATE_OFF;
-			}
-		}
-
-		class Cell {
-			constructor(row, col, state) {
-				this.id = `${row},${col}`;
-				this.row = row;
-				this.col = col;
-				this.state = Observable(state);
-
-				this.toggle = () => {
-					this.state.value = nextState(this.state.value);
-				}
-			}
-		}
-
-		const cells = Observable();
-		for (let row = 0; row < height.value; ++row) {
-			for (let col = 0; col < width.value; ++col) {
-				let state = CELL_STATE_OFF;
-				cells.add(new Cell(row, col, state))
-			}
-		}
-
-		let oldWidth = width.value;
-		let oldHeight = height.value;
-
-		function eachRow(fn) {
-			let a = [];
-			for (let y = 0; y < height.value; ++y) {
-				a.push(fn(y));
-			}
-			return a;
-		}
-
-		function eachColumn(fn) {
-			let a = [];
-			for (let x = 0; x < width.value; ++x) {
-				a.push(fn(x));
-			}
-			return a;
-		}
-
-		function addRow() {
-			cells.addAll(
-				eachColumn(col =>
-					new Cell(height.value, col, CELL_STATE_OFF)));
-			height.value++;
-		}
-
-		function addCol() {
-			cells.addAll(
-				eachRow(row =>
-					new Cell(row, width.value, CELL_STATE_OFF)));
-			width.value++;
-		}
-
-		function removeRow() {
-			height.value--;
-			trimCells();
-		}
-
-		function removeCol() {
-			width.value--;
-			trimCells();
-		}
-
-		function trimCells() {
-			cells.removeWhere(cell =>
-				cell.col >= width.value ||
-				cell.row >= height.value
-			)
-		}
-
-		const resetMap = () => {
-			cells.forEach((cell) => {
-				cell.state.value = CELL_STATE_OFF;
-			})
-		}
-
-		const exportMap = () => {
-			let width = width.value;
-			let height = height.value;
-
-			const pointIndex = (row, col) => col*width + row;
-			const cellIndex = (cell) => pointIndex(cell.row, cell.col);
-
-			const cellStates = new Array(width*height);
-			cells.forEach(cell => {
-				cellStates[cellIndex] = cell.state;
-			})
-
-			let output = `${width} ${height}\n`;
-			
-			for (let row = 0; row < height; ++row) {
-				for (let col = 0; col < width; ++col) {
-					output += cellStates[pointIndex(row, col)];
-				}
-				output += "\n";
-			}
-		}
-
-		module.exports = {
-			width,
-			height,
-			cells,
-			exportMap,
-			resetMap,
-			addRow,
-			addCol,
-			removeRow,
-			removeCol,
-		};
-	</JavaScript>
-
-	<DockPanel Background="#111">
-		<Grid ColumnCount="{width}" RowCount="{height}" Aspect="({width} / {height})" BoxSizing="FillAspect" Margin="10">
-			<Each Items="{cells}" IdentityKey="{id}">
-				<Rectangle ux:Name="cell"
-					Row="{row}"
-					Column="{col}"
-					HitTestMode="LocalBounds"
-					Margin="1"
-					Clicked="{toggle}">
-					<SolidColor ux:Name="cellColor" Color="#666" />
-
-					<WhileTrue Value="{state} == CellStateBlack">
-						<Change Target="cellColor.Color" Value="#000" Duration="0.2" />
-					</WhileTrue>
-
-					<WhileTrue Value="{state} == CellStateWhite">
-						<Change Target="cellColor.Color" Value="#fff" Duration="0.2" />
-					</WhileTrue>
-				</Rectangle>
-			</Each>
-		</Grid>
-
-		<DockPanel Dock="Bottom"  Color="#eee">
-			<Grid Dock="Left" Columns="auto,auto,auto">
-				<ToolbarGroup Label="Width">
-					<NumberPicker Value="{width}"
-						OnIncrement="{addCol}"
-						OnDecrement="{removeCol}" />
-				</ToolbarGroup>
-				<ToolbarGroup Label="Height">
-					<NumberPicker Value="{height}"
-						OnIncrement="{addRow}"
-						OnDecrement="{removeRow}" />
-				</ToolbarGroup>
-				<ToolbarButton Color="#444" Label="Reset" Clicked="{resetMap}" />
-			</Grid>
-			<ToolbarButton Dock="Right" Label="Export" Clicked="{exportMap}" />
-		</DockPanel>
-	</DockPanel>
-
-	<Rectangle ux:Class="ToolbarButton" Color="#37f" CornerRadius="3" Alignment="Center" Margin="20">
-		<string ux:Property="Label" />
-		<Text Value="{ReadProperty Label}" Alignment="Center" Margin="20" Color="#fff" />
-	</Rectangle>
-
-	<StackPanel ux:Class="ToolbarGroup" Margin="16">
-		<string ux:Property="Label" />
-		<Label Alignment="Center">{ReadProperty Label}</Label>
-	</StackPanel>
-
-	<Text ux:Class="BaseText" Color="#333" />
+	<float4 ux:Global="BaseTextColor" ux:Value="#aaa" />
+	<float4 ux:Global="HighlightColor" ux:Value="#1DC3FF" />
+	<Text ux:Class="BaseText" Color="BaseTextColor" />
 	<BaseText ux:Class="Label" FontSize="10" />
 
-	<StackPanel ux:Class="NumberPicker" MinWidth="80">
+	<Panel>
+		<WhileTrue Value="{showExportDialog}">
+			<Panel Color="#000a" ux:Name="exportDialogOverlay">
+				<Rectangle ux:Name="exportDialog" Color="#252525" Alignment="Center" Width="400" CornerRadius="2">
+					<StackPanel Margin="20" ItemSpacing="20">
+						<Text FontSize="16" Value="EXPORT MAP TO FILE" Color="#666" />
+						<TextView Value="{exportPath}" Padding="10" CaretColor="#555" SelectionColor="#fff5" TextWrapping="Wrap" TextTruncation="Standard">
+							<Rectangle Layer="Background" Color="#111" CornerRadius="2" />
+						</TextView>
+						<DockPanel>
+							<ToolbarButton Dock="Right" Value="EXPORT" Color="HighlightColor" Alignment="VerticalCenter" Clicked="{exportMap}" />
+							<ToolbarButton Dock="Right" Value="CANCEL" Color="#f88" Alignment="VerticalCenter" Clicked="{closeExportDialog}" />
+						</DockPanel>
+					</StackPanel>
+					<Shadow Size="20" Distance="1" Color="#0005" />
+				</Rectangle>
+				<AddingAnimation>
+					<Change exportDialogOverlay.Opacity="0" Duration="0.6" Easing="CubicInOut" />
+					<Scale Target="exportDialog" Factor="0.7" Duration="0.4" Easing="BackIn" />
+				</AddingAnimation>
+				<RemovingAnimation>
+					<Change exportDialogOverlay.Opacity="0" Duration="0.6" Easing="CubicInOut" />
+					<Scale Target="exportDialog" Factor="0.7" Duration="0.4" Easing="BackIn" />
+				</RemovingAnimation>
+			</Panel>
+		</WhileTrue>
+<!-- 
+		<ToggleControl ux:Class="Checkbox">
+			<string ux:Property="Label" />
+			<StackPanel Orientation="Horizontal" Dock="Left" ItemSpacing="5">
+				<Material.IconBase ux:Name="icon" Icon="CheckboxBlank" HitTestMode="LocalBounds">
+					<Clicked>
+						<Toggle Target="this" />
+					</Clicked>
+					<WhileTrue Value="{ReadProperty Value}">
+						<Change icon.Icon="CheckboxMarked" />
+						<Change icon.Color="HighlightColor" />
+					</WhileTrue>
+				</Material.IconBase>
+				<Text Color="#888" FontSize="13" Alignment="VerticalCenter">{ReadProperty Label}</Text>
+			</StackPanel>
+		</ToggleControl> -->
+
+		<DockPanel Background="#111" ux:Name="foo" Focus.IsFocusable="true">
+			<Grid ux:Name="mapGrid"
+				ColumnCount="{width}"
+				RowCount="{height}"
+				Aspect="{width} / {height}"
+				BoxSizing="FillAspect"
+				Margin="10"
+				CellSpacing="1">
+
+				<LayoutAnimation>
+					<Move RelativeTo="PositionChange" Vector="1,1,0" Duration=".4" Easing="CubicInOut" />
+					<Resize RelativeTo="SizeChange" Vector="1,1" Duration=".4" Easing="CubicInOut" />
+				</LayoutAnimation>
+
+				<Each Items="{cells}" IdentityKey="id">
+					<Rectangle ux:Name="cell" Row="{y}" Column="{x}" HitTestMode="LocalBounds">
+						<SolidColor ux:Name="cellColor" />
+						<WhileHovering Bypass="Never">
+							<WhilePressed Bypass="Never">
+								<HackCallback Visual="mapGrid" Handler="{toggle}" AtProgress="0.5" />
+							</WhilePressed>
+						</WhileHovering>
+
+						<WhileTrue Value="{state} == CellStateOff">
+							<Change Target="cellColor.Color" Value="#444" Duration="0.04" />
+						</WhileTrue>
+
+						<WhileTrue Value="{state} == CellStateBlack">
+							<Change Target="cellColor.Color" Value="#000" Duration="0.04" />
+						</WhileTrue>
+
+						<WhileTrue Value="{state} == CellStateWhite">
+							<Change Target="cellColor.Color" Value="#fff" Duration="0.04" />
+						</WhileTrue>
+					</Rectangle>
+				</Each>
+			</Grid>
+
+			<Panel Dock="Bottom" Color="#252525">
+				<Rectangle Height="1" Color="#fff2" Layer="Overlay" Alignment="Top" />
+				<DockPanel>
+					<Grid Dock="Left" Columns="auto,auto,auto" Alignment="VerticalCenter">
+						<ToolbarGroup Label="WIDTH">
+							<NumberPicker Value="{width}"
+								OnIncrement="{addCol}"
+								OnDecrement="{removeCol}"
+								Alignment="VerticalCenter"
+								Margin="4,0" />
+						</ToolbarGroup>
+						<ToolbarGroup Label="HEIGHT">
+							<NumberPicker Value="{height}"
+								OnIncrement="{addRow}"
+								OnDecrement="{removeRow}"
+								Alignment="VerticalCenter"
+								Margin="4,0" />
+						</ToolbarGroup>
+						<ToolbarGroup Label="TOOLS">
+							<ToolPicker
+								Tool="{currentTool}"
+								Alignment="VerticalCenter"
+								Margin="4,0" />
+
+							<LayoutAnimation>
+								<Resize RelativeTo="SizeChange" X="1" Duration="0.2" Easing="CubicInOut" />
+							</LayoutAnimation>
+						</ToolbarGroup>
+					</Grid>
+					<StackPanel Alignment="VerticalCenter" Orientation="Horizontal" Dock="Right">
+						<StackPanel Orientation="Horizontal" Padding="4" ItemSpacing="4">
+							<ToolbarButton Color="HighlightColor" Value="EXPORT" Clicked="{exportMap}" Margin="5,0" Alignment="VerticalCenter" />
+							<Rectangle Width="1" Color="#7774" Margin="0,-4" />
+							<Material.IconBase
+								Icon="Settings"
+								Color="HighlightColor"
+								Size="14"
+								Padding="1,0,2,0"
+								Clicked="{openExportDialog}"
+								HitTestMode="LocalBounds"
+								/>
+							<Rectangle Layer="Background" Color="#0003" CornerRadius="2" StrokeWidth="1" StrokeColor="#7774" />
+						</StackPanel>
+						<ToolbarButton Color="#F44336" Value="RESET" Clicked="{resetMap}" Alignment="VerticalCenter" />
+					</StackPanel>
+				</DockPanel>
+			</Panel>
+		</DockPanel>
+	</Panel>
+
+	<Rectangle ux:Class="VerticalSpacer" Width="1" Color="#3338" Alignment="HorizontalCenter" />
+
+	<StackPanel ux:Class="ToolPicker" Orientation="Horizontal">
+		<string ux:Property="Tool" />
+		<Selection Value="{Property Tool}" MaxCount="1" Replace="Newest" />
+
+		<ToolPickerItem Icon="Numeric1Box" Tool="black" Hotkey="D1" />
+		<ToolPickerItem Icon="Numeric2Box" Tool="white" Hotkey="D2" />
+		<ToolPickerItem Icon="Texture" Tool="wall" Hotkey="D3" />
+		<Panel>
+			<LetBool ux:Name="isSelected" Value="false" />
+			<ToolPickerItem Icon="Water" Tool="fill" Hotkey="D4">
+				<WhileSelected>
+					<Clicked>
+						<HackCallback Handler="{toggleFillState}" />
+					</Clicked>
+					<OnKeyPress Key="D4">
+						<HackCallback Handler="{toggleFillState}" />
+					</OnKeyPress>
+
+					<Change isSelected.Value="True" Delay="0" DelayBack="0" />
+					<Move Vector="-7, -7, 0" Duration="0.2" DelayBack="0" Easing="CubicInOut" />
+					<Scale Factor="0.8" Duration="0.2" Easing="CubicInOut" DelayBack="0" />
+					<Rotate Degrees="360" Duration="0" EasingBack="CubicIn" DurationBack=".7" />
+				</WhileSelected>
+			</ToolPickerItem>
+			<Each Items="{currentFillState}">
+				<ToolPickerItemBase
+					ux:Name="fillStateButton"
+					Icon="(data() == CellStateOff)  ? Texture
+					    : (data() == CellStateBlack ? Numeric1Box : Numeric2Box)"
+					Clicked="{toggleFillState}">
+					<Scaling ux:Name="fillStateButtonScale" Factor="0.7" />
+					<WhileFalse Value="{isSelected}">
+						<Change fillStateButton.Opacity="0" Duration="0.1"  Easing="CubicInOut" DelayBack="0" DurationBack="0.04" />
+						<Change fillStateButtonScale.Factor="0.01" Duration="0.2" Easing="CubicOut" DelayBack="0" />
+						<Move Vector="7, 7, 0" Duration="0.2" Easing="CubicInOut" />
+						<Scale Factor="0.8" Duration="0.2" Easing="CubicInOut" />
+					</WhileFalse>
+
+					<AddingAnimation>
+						<Move X="1" RelativeTo="Size" Duration="0.3" Easing="CubicInOut" />
+						<Change fillStateButton.Opacity="0" Duration="0.3" Easing="CubicInOut" DelayBack="0" />
+					</AddingAnimation>
+					<RemovingAnimation>
+						<Move X="-1" RelativeTo="Size" Duration="0.3" Easing="CubicInOut" />
+						<Change fillStateButton.Opacity="0" Duration="0.3" Easing="CubicInOut" DelayBack="0" />
+					</RemovingAnimation>
+				</ToolPickerItemBase>
+			</Each>
+			<!-- <Rectangle ux:Name="fillToolGroupBackground" Layer="Background" Color="#0004" CornerRadius="3" /> -->
+		</Panel>
+		<ToolPickerItem Icon="StarHalf" Tool="invert" Hotkey="D5" />
+		<ToolPickerItem Icon="Autorenew" Tool="cycle" Hotkey="D6">
+			<WhileSelected>
+				<Rotate Degrees="360" Duration="0.6" Easing="CubicInOut" DurationBack="0" />
+			</WhileSelected>
+		</ToolPickerItem>
+	</StackPanel>
+
+	<Material.IconBase ux:Class="ToolPickerItemBase"
+		Color="#fff7"
+		Height="25"
+		Margin="2,0,2,5"
+		HitTestMode="LocalBounds" />
+
+	<ToolPickerItemBase ux:Class="ToolPickerItem">
+		<Uno.Platform.Key ux:Property="Hotkey" />
+
+		<string ux:Property="Tool" />
+		<Selectable Value="{ReadProperty Tool}" />
+		<WhileSelected>
+			<Change this.Color="HighlightColor" Duration="0.05" Easing="CubicInOut" />
+			<DropShadow Size="8" Distance="0"  Color="HighlightColor * (1,1,1, 0.5)" />
+		</WhileSelected>
+
+		<Clicked>
+			<ToggleSelection Mode="AddOnly" />
+		</Clicked>
+		<WhileFalse Value="{showExportDialog}">
+			<OnKeyPress Key="{ReadProperty Hotkey}">
+					<ToggleSelection Mode="AddOnly" />
+			</OnKeyPress>
+		</WhileFalse>
+	</ToolPickerItemBase>
+
+	<Text ux:Class="ToolbarButton" FontSize="13" TextAlignment="Center" Margin="15,0" Color="#000a" HitTestMode="LocalBounds">
+		<WhilePressed>
+			<Change Target="this.Color" Value="{ReadProperty Color} * (.7, .7, .7, 1)" />
+		</WhilePressed>
+	</Text>
+
+	<DockPanel ux:Class="ToolbarGroup" Margin="0,4,0,4">
+		<string ux:Property="Label" />
+		<Label Color="#777" Dock="Top" Alignment="Center" Margin="10,2,10,0">{ReadProperty Label}</Label>
+		<VerticalSpacer Layer="Background" Alignment="Right" />
+	</DockPanel>
+
+	<Material.IconBase
+		ux:Class="StepperButton"
+		Color="BaseTextColor"
+		Size="20"
+		HitTestMode="LocalBounds">
+		<WhilePressed>
+			<Change this.Color="#888" Duration="0.1" />
+		</WhilePressed>
+		<WhileDisabled>
+			<Change this.Opacity="0.2" Duration=".3" Easing="CubicInOut" />
+		</WhileDisabled>
+		<WhilePressed>
+			<Instance>
+				<Circle ux:Name="tapCircle" Color="#fff1" Layer="Background">
+					<AddingAnimation>
+						<Scale Factor="0.5" Duration="0.04" Easing="CubicIn" />
+						<Change tapCircle.Opacity="0" Duration="0.04" />
+					</AddingAnimation>
+					<RemovingAnimation>
+						<Scale Factor="0" Duration="0.6" Easing="CubicInOut" />
+						<Change tapCircle.Opacity="0" Duration="0.6" />
+					</RemovingAnimation>
+				</Circle>
+			</Instance>
+		</WhilePressed>
+	</Material.IconBase>
+
+	<StackPanel ux:Class="NumberPicker" MinWidth="90">
 		<double ux:Property="Value" />
 		<object ux:Property="OnIncrement" />
 		<object ux:Property="OnDecrement" />
-		<BaseText Value="{ReadProperty this.Value}" FontSize="20" Alignment="Center" />
 
-		<Rectangle ux:Class="StepperButton" Height="22" Color="#aaa">
-			<string ux:Property="Label" />
-			<Text Value="{ReadProperty this.Label}" Color="#fff" Alignment="Center" />
-			<Clicked>
-				<Change this.Color="#888" Duration="0.1" />
-			</Clicked>
-		</Rectangle>
-
-		<Grid Columns="1*,1*" Margin="0,5,0,0" CellSpacing="1">
-			<StepperButton Label="-" CornerRadius="3,0,0,3" Clicked="{ReadProperty this.OnDecrement}" />
-			<StepperButton Label="+" CornerRadius="0,3,3,0" Clicked="{ReadProperty this.OnIncrement}" />
-		</Grid>
+		<DockPanel Margin="5,0">
+			<StepperButton
+				Icon="Minus"
+				Dock="Left"
+				Clicked="{ReadProperty this.OnDecrement}"
+				IsEnabled="{ReadProperty Value} > 4" />
+			<BaseText
+				Value="{ReadProperty this.Value}"
+				FontSize="14"
+				Color="HighlightColor"
+				Alignment="Center" />
+			<StepperButton 
+				Icon="Plus"
+				Dock="Right"
+				Clicked="{ReadProperty this.OnIncrement}" />
+		</DockPanel>
 	</StackPanel>
 </App>
