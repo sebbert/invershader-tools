@@ -248,7 +248,7 @@ function stateAsInt(state) {
 	}
 }
 
-const exportPath = Observable("/Users/Sebbert/code/invershader-tools/map-packer/map.json");
+const exportPath = Observable(null);
 
 function exportMap() {
 	if (exportPath.value == null) {
