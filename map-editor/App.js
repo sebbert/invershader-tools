@@ -256,7 +256,7 @@ function exportMap() {
 		return;
 	}
 
-	let packedCells = new Array(width.value * height.value);2
+	let packedCells = new Array(width.value * height.value);
 	cells.forEach(cell => {
 		let index = cell.y * width.value + cell.x;
 		let intState = stateAsInt(cell.state.value);
